@@ -160,6 +160,8 @@ with aba1:
     
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
+      
+    st.info("💡 **Dica de preenchimento:** No **torneamento**, utilize **Número de Dentes = 1**. No **fresamento**, insira a quantidade real de dentes da fresa (ex: 4).")
     
     col1, col2, col3 = st.columns(3)
     
