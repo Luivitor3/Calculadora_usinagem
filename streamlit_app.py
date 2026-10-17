@@ -37,17 +37,14 @@ MATERIAIS = {
 # FUNÇÕES DE CÁLCULO
 # ============================================================
 def calcular_rpm(vc, diametro):
-    """Calcula a rotação (RPM). Fórmula: n = (Vc × 1000) / (π × D)"""
     if diametro <= 0:
         return 0
     return (vc * 1000) / (math.pi * diametro)
 
 def calcular_avanco(rpm, avanco_dente, num_dentes):
-    """Calcula o avanço da mesa (mm/min). Fórmula: Vf = n × fz × z"""
     return rpm * avanco_dente * num_dentes
 
 def calcular_tempo(comprimento, avanco):
-    """Calcula o tempo de usinagem (min). Fórmula: Tc = L / Vf"""
     if avanco <= 0:
         return 0
     return comprimento / avanco
@@ -56,12 +53,6 @@ def calcular_potencia(avanco, profundidade, largura, kc, rendimento=0.8):
     """
     Calcula a potência de corte (kW).
     Fórmula: Pc = (Vf × ap × ae × kc) / (60 × 10⁶ × η)
-    Onde:
-    - Vf = avanço em mm/min
-    - ap = profundidade de corte em mm
-    - ae = largura de corte em mm
-    - kc = força específica de corte em N/mm²
-    - η = rendimento da máquina (0.8 padrão)
     """
     if avanco <= 0 or profundidade <= 0 or largura <= 0 or kc <= 0:
         return 0
@@ -69,7 +60,6 @@ def calcular_potencia(avanco, profundidade, largura, kc, rendimento=0.8):
     return pc / rendimento
 
 def calcular_conicidade(d_maior, d_menor, comprimento):
-    """Calcula o ângulo de inclinação do carro superior (graus e minutos)."""
     if comprimento <= 0 or d_maior <= d_menor:
         return None, None
     tg_alpha = (d_maior - d_menor) / (2 * comprimento)
@@ -80,7 +70,6 @@ def calcular_conicidade(d_maior, d_menor, comprimento):
     return alpha_graus, (graus, minutos)
 
 def calcular_rosca_metrica(diametro_nominal, passo):
-    """Calcula dimensões de rosca métrica (perfil triangular 60°)."""
     d_externo = diametro_nominal
     d_interno = diametro_nominal - (1.2268 * passo)
     altura_rosca = 0.6134 * passo
@@ -92,7 +81,6 @@ def calcular_rosca_metrica(diametro_nominal, passo):
     }
 
 def calcular_cabecote_divisor(numero_divisoes, relacao_cabecote=40):
-    """Calcula a divisão no cabeçote divisor. Fórmula: N = R / z"""
     if numero_divisoes <= 0:
         return None
     voltas = relacao_cabecote / numero_divisoes
@@ -103,7 +91,7 @@ def calcular_cabecote_divisor(numero_divisoes, relacao_cabecote=40):
 # ============================================================
 st.title("⚙️ Auxiliar de Usinagem Manual")
 st.markdown("""
-Programa feito para auxiliar operadores de máquinas-ferramenta convencionais 
+Este programa auxilia operadores de máquinas-ferramenta convencionais 
 e alunos no cálculo rápido dos parâmetros de usinagem.
 """)
 
@@ -124,10 +112,55 @@ aba1, aba2, aba3, aba4, aba5 = st.tabs([
 with aba1:
     st.subheader("🔩 Material da Peça")
     
+    opcao_material = st.radio(
+        "Como deseja informar a velocidade de corte?",
+        ["Selecionar material da lista", "Inserir valor manualmente"],
+        horizontal=True,
+        key="radio_material"
+    )
+    
+    if opcao_material == "Selecionar material da lista":
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            material_selecionado = st.selectbox(
+                "Selecione o material:",
+                list(MATERIAIS.keys()),
+                key="select_material"
+            )
+        with col_m2:
+            tipo_operacao = st.radio(
+                "Tipo de operação:",
+                ["Desbaste", "Acabamento"],
+                horizontal=True,
+                key="radio_operacao"
+            )
+        
+        if tipo_operacao == "Desbaste":
+            vc_sugerida = MATERIAIS[material_selecionado]["vc_desbaste"]
+        else:
+            vc_sugerida = MATERIAIS[material_selecionado]["vc_acabamento"]
+        
+        st.info(f"💡 Velocidade de corte sugerida: **{vc_sugerida} m/min**")
+        
+        vc = st.number_input(
+            "Velocidade de Corte - Vc (m/min):",
+            min_value=1.0, max_value=1000.0,
+            value=float(vc_sugerida), step=10.0,
+            key="vc_input"
+        )
+    else:
+        vc = st.number_input(
+            "Velocidade de Corte - Vc (m/min):",
+            min_value=1.0, max_value=1000.0,
+            value=120.0, step=10.0,
+            key="vc_manual"
+        )
+        material_selecionado = "Manual"
+        tipo_operacao = "---"
+    
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
     
-    # Criando as 3 colunas principais
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -136,7 +169,6 @@ with aba1:
             min_value=1.0, max_value=1000.0, value=50.0, step=5.0, key="diametro"
         )
         
-        # Caixinha e Label na mesma linha
         sub_c1, sub_c2 = st.columns([1, 1.5])
         with sub_c1:
             nao_sabe_fz = st.checkbox("Não sei o fz", key="check_fz")
@@ -154,9 +186,8 @@ with aba1:
             "Número de Dentes - z:", min_value=1, max_value=20, value=4, step=1, key="num_dentes"
         )
         
-        # Espaço em branco para alinhar com as caixinhas das outras colunas
         st.write("") 
-        st.write("") # Adicionado um segundo para garantir a altura exata
+        st.write("") # Espaço para garantir o alinhamento com as caixinhas
         
         profundidade = st.number_input(
             "Profundidade de Corte - ap (mm):", min_value=0.1, max_value=20.0, value=2.0, step=0.5, key="profundidade"
@@ -167,7 +198,6 @@ with aba1:
             "Largura de Corte - ae (mm):", min_value=0.1, max_value=200.0, value=10.0, step=1.0, key="largura"
         )
         
-        # Caixinha e Label na mesma linha
         sub_c3, sub_c4 = st.columns([1, 1.5])
         with sub_c3:
             nao_sabe_comprimento = st.checkbox("Não sei o L", key="check_comp")
@@ -187,12 +217,8 @@ with aba1:
     with col_b2:
         botao_limpar = st.button("🗑️ Limpar", use_container_width=True, key="btn_limpar")
     
-    # ============================================================
-    # AQUI COMEÇA O QUE VEM LOGO ABAIXO (A LÓGICA DO BOTÃO CALCULAR)
-    # ============================================================
     if botao_calcular:
         erros = []
-        # Validações básicas
         if diametro <= 0:
             erros.append("O diâmetro deve ser maior que zero.")
         if vc <= 0:
@@ -202,16 +228,13 @@ with aba1:
             for erro in erros:
                 st.error(f"❌ {erro}")
         else:
-            # 1. CÁLCULO DO RPM (Sempre é feito)
             rpm = calcular_rpm(vc, diametro)
             
             st.divider()
             st.subheader("📊 Resultados")
             
-            # Exibe o RPM sempre
             st.metric("Rotação (RPM)", f"{rpm:.0f}")
             
-            # 2. VERIFICA SE PODE CALCULAR AVANÇO E POTÊNCIA
             if not nao_sabe_fz:
                 avanco = calcular_avanco(rpm, avanco_dente, num_dentes)
                 kc = MATERIAIS.get(material_selecionado, {}).get("kc", 2000)
@@ -221,22 +244,42 @@ with aba1:
                 col_r2.metric("Avanço (mm/min)", f"{avanco:.1f}")
                 col_r3.metric("Potência (kW)", f"{potencia:.2f}")
                 
-                # 3. VERIFICA SE PODE CALCULAR O TEMPO
                 if not nao_sabe_comprimento:
                     tempo = calcular_tempo(comprimento, avanco)
                     st.metric("Tempo (min)", f"{tempo:.2f}")
                 else:
                     st.info("⏱️ Tempo não calculado (Comprimento não informado).")
                 
-                # Salvar no histórico (só salva se tiver tudo)
-                # ... (código do histórico aqui) ...
+                # Salvar no histórico
+                st.session_state.historico.append({
+                    "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Material": material_selecionado,
+                    "Operação": tipo_operacao,
+                    "Vc (m/min)": vc,
+                    "D (mm)": diametro,
+                    "ae (mm)": largura,
+                    "RPM": f"{rpm:.0f}",
+                    "Avanço (mm/min)": f"{avanco:.1f}",
+                    "Tempo (min)": f"{tempo:.2f}" if not nao_sabe_comprimento else "---",
+                    "Potência (kW)": f"{potencia:.3f}"
+                })
+                
+                # Botão de exportar
+                df = pd.DataFrame([st.session_state.historico[-1]])
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Exportar este resultado (CSV)",
+                    data=csv,
+                    file_name=f"usinagem_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                    mime="text/csv"
+                )
                 
             else:
                 st.info("ℹ️ Avanço e Potência não calculados (Avanço por Dente não informado).")
-
+    
     if botao_limpar:
         st.rerun()
-        
+
 # ============================================================
 # ABA 2: CONICIDADE
 # ============================================================
@@ -397,6 +440,11 @@ with aba5:
     else:
         st.info("Nenhum cálculo realizado ainda. Os resultados aparecerão aqui.")
 
+# ============================================================
+# RODAPÉ
+# ============================================================
+st.divider()
+st.caption("Desenvolvido como parte de TCC em Engenharia Mecânica | Versão 2.2")
 # ============================================================
 # RODAPÉ
 # ============================================================
