@@ -442,8 +442,3 @@ with aba5:
 # ============================================================
 st.divider()
 st.caption("Desenvolvido como parte de TCC em Engenharia Mecânica | Versão 2.2")
-# ============================================================
-# RODAPÉ
-# ============================================================
-st.divider()
-st.caption("Desenvolvido como parte de TCC em Engenharia Mecânica | Versão 2.1")
