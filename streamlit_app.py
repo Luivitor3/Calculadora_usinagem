@@ -152,10 +152,12 @@ with aba1:
         num_dentes = st.number_input(
             "Número de Dentes - z:", min_value=1, max_value=20, value=4, step=1, key="num_dentes"
         )
+        
+        st.write("") # <--- ADICIONE ESTA LINHA AQUI
+        
         profundidade = st.number_input(
             "Profundidade de Corte - ap (mm):", min_value=0.1, max_value=20.0, value=2.0, step=0.5, key="profundidade"
         )
-    
     with col3:
         largura = st.number_input(
             "Largura de Corte - ae (mm):", min_value=0.1, max_value=200.0, value=10.0, step=1.0, key="largura"
