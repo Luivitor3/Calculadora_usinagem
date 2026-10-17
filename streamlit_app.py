@@ -124,99 +124,45 @@ aba1, aba2, aba3, aba4, aba5 = st.tabs([
 with aba1:
     st.subheader("🔩 Material da Peça")
     
-    opcao_material = st.radio(
-        "Como deseja informar a velocidade de corte?",
-        ["Selecionar material da lista", "Inserir valor manualmente"],
-        horizontal=True,
-        key="radio_material"
-    )
-    
-    if opcao_material == "Selecionar material da lista":
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            material_selecionado = st.selectbox(
-                "Selecione o material:",
-                list(MATERIAIS.keys()),
-                key="select_material"
-            )
-        with col_m2:
-            tipo_operacao = st.radio(
-                "Tipo de operação:",
-                ["Desbaste", "Acabamento"],
-                horizontal=True,
-                key="radio_operacao"
-            )
-        
-        if tipo_operacao == "Desbaste":
-            vc_sugerida = MATERIAIS[material_selecionado]["vc_desbaste"]
-        else:
-            vc_sugerida = MATERIAIS[material_selecionado]["vc_acabamento"]
-        
-        st.info(f"💡 Velocidade de corte sugerida: **{vc_sugerida} m/min**")
-        
-        vc = st.number_input(
-            "Velocidade de Corte - Vc (m/min):",
-            min_value=1.0, max_value=1000.0,
-            value=float(vc_sugerida), step=10.0,
-            key="vc_input"
-        )
-    else:
-        vc = st.number_input(
-            "Velocidade de Corte - Vc (m/min):",
-            min_value=1.0, max_value=1000.0,
-            value=120.0, step=10.0,
-            key="vc_manual"
-        )
-        material_selecionado = "Manual"
-        tipo_operacao = "---"
+    # ... (Aqui fica a parte de seleção de material e Vc que você já tem) ...
     
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
-    st.info("💡 **Atenção:** O campo 'Número de Dentes' deve ser alterado apenas para operações de **fresamento**. Para torneamento, mantenha o valor em 1.")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         diametro = st.number_input(
             "Diâmetro - D (mm):",
-            min_value=1.0, max_value=1000.0,
-            value=50.0, step=5.0,
-            key="diametro"
+            min_value=1.0, max_value=1000.0, value=50.0, step=5.0, key="diametro"
         )
+        
+        nao_sabe_fz = st.checkbox("Não sei o Avanço por Dente", key="check_fz")
+        
         avanco_dente = st.number_input(
             "Avanço por Dente - fz (mm/dente):",
-            min_value=0.01, max_value=1.0,
-            value=0.10, step=0.01, format="%.2f",
-            key="avanco_dente"
+            min_value=0.01, max_value=1.0, value=0.10, step=0.01, format="%.2f",
+            key="avanco_dente", disabled=nao_sabe_fz
         )
     
     with col2:
         num_dentes = st.number_input(
-            "Número de Dentes - z:",
-            min_value=1, max_value=20,
-            value=1, step=1,
-            key="num_dentes"
+            "Número de Dentes - z:", min_value=1, max_value=20, value=4, step=1, key="num_dentes"
         )
         profundidade = st.number_input(
-            "Profundidade de Corte - ap (mm):",
-            min_value=0.1, max_value=20.0,
-            value=2.0, step=0.5,
-            key="profundidade"
+            "Profundidade de Corte - ap (mm):", min_value=0.1, max_value=20.0, value=2.0, step=0.5, key="profundidade"
         )
     
     with col3:
         largura = st.number_input(
-            "Largura de Corte - ae (mm):",
-            min_value=0.1, max_value=200.0,
-            value=10.0, step=1.0,
-            key="largura",
-            help="Largura de engajamento da ferramenta na peça"
+            "Largura de Corte - ae (mm):", min_value=0.1, max_value=200.0, value=10.0, step=1.0, key="largura"
         )
+        
+        nao_sabe_comprimento = st.checkbox("Não sei o Comprimento", key="check_comp")
+        
         comprimento = st.number_input(
-            "Comprimento de Usinagem - L (mm):",
-            min_value=0.0, max_value=10000.0,
-            value=200.0, step=10.0,
-            key="comprimento"
+            "Comprimento de Usinagem - L (mm):", min_value=0.0, max_value=10000.0, value=200.0, step=10.0,
+            key="comprimento", disabled=nao_sabe_comprimento
         )
     
     st.divider()
@@ -227,83 +173,56 @@ with aba1:
     with col_b2:
         botao_limpar = st.button("🗑️ Limpar", use_container_width=True, key="btn_limpar")
     
+    # ============================================================
+    # AQUI COMEÇA O QUE VEM LOGO ABAIXO (A LÓGICA DO BOTÃO CALCULAR)
+    # ============================================================
     if botao_calcular:
         erros = []
+        # Validações básicas
         if diametro <= 0:
             erros.append("O diâmetro deve ser maior que zero.")
         if vc <= 0:
             erros.append("A velocidade de corte deve ser maior que zero.")
-        if avanco_dente <= 0:
-            erros.append("O avanço por dente deve ser maior que zero.")
-        if num_dentes <= 0:
-            erros.append("O número de dentes deve ser maior que zero.")
-        if largura <= 0:
-            erros.append("A largura de corte deve ser maior que zero.")
         
         if erros:
             for erro in erros:
                 st.error(f"❌ {erro}")
         else:
+            # 1. CÁLCULO DO RPM (Sempre é feito)
             rpm = calcular_rpm(vc, diametro)
-            avanco = calcular_avanco(rpm, avanco_dente, num_dentes)
-            tempo = calcular_tempo(comprimento, avanco) if comprimento > 0 else 0
-            
-            # Potência de corte (com largura)
-            kc = MATERIAIS.get(material_selecionado, {}).get("kc", 2000)
-            potencia = calcular_potencia(avanco, profundidade, largura, kc)
             
             st.divider()
             st.subheader("📊 Resultados")
             
-            col_r1, col_r2, col_r3, col_r4 = st.columns(4)
-            col_r1.metric("Rotação (RPM)", f"{rpm:.0f}")
-            col_r2.metric("Avanço (mm/min)", f"{avanco:.1f}")
-            col_r3.metric("Tempo (min)", f"{tempo:.2f}" if tempo > 0 else "---")
-            col_r4.metric("Potência (kW)", f"{potencia:.2f}")
+            # Exibe o RPM sempre
+            st.metric("Rotação (RPM)", f"{rpm:.0f}")
             
-            with st.expander("🔍 Ver detalhamento dos cálculos"):
-                st.markdown(f"""
-                **Rotação:** n = (Vc × 1000) / (π × D) = ({vc} × 1000) / (π × {diametro}) = **{rpm:.2f} rpm**
+            # 2. VERIFICA SE PODE CALCULAR AVANÇO E POTÊNCIA
+            if not nao_sabe_fz:
+                avanco = calcular_avanco(rpm, avanco_dente, num_dentes)
+                kc = MATERIAIS.get(material_selecionado, {}).get("kc", 2000)
+                potencia = calcular_potencia(avanco, profundidade, largura, kc)
                 
-                **Avanço:** Vf = n × fz × z = {rpm:.2f} × {avanco_dente} × {num_dentes} = **{avanco:.2f} mm/min**
-                """)
-                if tempo > 0:
-                    st.markdown(f"""
-                    **Tempo:** Tc = L / Vf = {comprimento} / {avanco:.2f} = **{tempo:.2f} min** ({tempo*60:.0f} segundos)
-                    """)
-                st.markdown(f"""
-                **Potência:** Pc = (Vf × ap × ae × kc) / (60 × 10⁶ × η)
+                col_r2, col_r3 = st.columns(2)
+                col_r2.metric("Avanço (mm/min)", f"{avanco:.1f}")
+                col_r3.metric("Potência (kW)", f"{potencia:.2f}")
                 
-                Pc = ({avanco:.2f} × {profundidade} × {largura} × {kc}) / (60 × 10⁶ × 0.8) = **{potencia:.3f} kW**
-                """)
-            
-            # Salvar no histórico
-            st.session_state.historico.append({
-                "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "Material": material_selecionado,
-                "Operação": tipo_operacao,
-                "Vc (m/min)": vc,
-                "D (mm)": diametro,
-                "ae (mm)": largura,
-                "RPM": f"{rpm:.0f}",
-                "Avanço (mm/min)": f"{avanco:.1f}",
-                "Tempo (min)": f"{tempo:.2f}" if tempo > 0 else "---",
-                "Potência (kW)": f"{potencia:.3f}"
-            })
-            
-            # Botão de exportar
-            df = pd.DataFrame([st.session_state.historico[-1]])
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Exportar este resultado (CSV)",
-                data=csv,
-                file_name=f"usinagem_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                mime="text/csv"
-            )
-    
+                # 3. VERIFICA SE PODE CALCULAR O TEMPO
+                if not nao_sabe_comprimento:
+                    tempo = calcular_tempo(comprimento, avanco)
+                    st.metric("Tempo (min)", f"{tempo:.2f}")
+                else:
+                    st.info("⏱️ Tempo não calculado (Comprimento não informado).")
+                
+                # Salvar no histórico (só salva se tiver tudo)
+                # ... (código do histórico aqui) ...
+                
+            else:
+                st.info("ℹ️ Avanço e Potência não calculados (Avanço por Dente não informado).")
+
     if botao_limpar:
         st.rerun()
-
+        
 # ============================================================
 # ABA 2: CONICIDADE
 # ============================================================
