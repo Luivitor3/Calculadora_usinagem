@@ -193,7 +193,7 @@ with aba1:
         num_dentes = st.number_input(
             "Número de Dentes - z:",
             min_value=1, max_value=20,
-            value=4, step=1,
+            value=1, step=1,
             key="num_dentes"
         )
         profundidade = st.number_input(
