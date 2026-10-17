@@ -172,6 +172,7 @@ with aba1:
     
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
+    st.info("💡 **Atenção:** O campo 'Número de Dentes' deve ser preenchido apenas para operações de **fresamento**. Para torneamento, mantenha o valor em 1.")
     
     col1, col2, col3 = st.columns(3)
     
