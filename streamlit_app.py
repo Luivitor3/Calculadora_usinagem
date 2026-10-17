@@ -127,6 +127,7 @@ with aba1:
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
     
+    # Criando as 3 colunas principais
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -135,12 +136,12 @@ with aba1:
             min_value=1.0, max_value=1000.0, value=50.0, step=5.0, key="diametro"
         )
         
-        # Sub-coluna para alinhar a caixinha e o campo
-        sub_col1, sub_col2 = st.columns([1, 1])
-        with sub_col1:
-            nao_sabe_fz = st.checkbox("Não sei o Avanço", key="check_fz")
-        with sub_col2:
-            st.write("") # Linha vazia para alinhar com a caixinha
+        # Caixinha e Label na mesma linha
+        sub_c1, sub_c2 = st.columns([1, 1.5])
+        with sub_c1:
+            nao_sabe_fz = st.checkbox("Não sei o fz", key="check_fz")
+        with sub_c2:
+            st.write("") 
             
         avanco_dente = st.number_input(
             "Avanço por Dente - fz (mm/dente):",
@@ -153,21 +154,24 @@ with aba1:
             "Número de Dentes - z:", min_value=1, max_value=20, value=4, step=1, key="num_dentes"
         )
         
-        st.write("") # <--- ADICIONE ESTA LINHA AQUI
+        # Espaço em branco para alinhar com as caixinhas das outras colunas
+        st.write("") 
+        st.write("") # Adicionado um segundo para garantir a altura exata
         
         profundidade = st.number_input(
             "Profundidade de Corte - ap (mm):", min_value=0.1, max_value=20.0, value=2.0, step=0.5, key="profundidade"
         )
+    
     with col3:
         largura = st.number_input(
             "Largura de Corte - ae (mm):", min_value=0.1, max_value=200.0, value=10.0, step=1.0, key="largura"
         )
         
-        # Sub-coluna para alinhar a caixinha e o campo
-        sub_col3, sub_col4 = st.columns([1, 1])
-        with sub_col3:
-            nao_sabe_comprimento = st.checkbox("Não sei o Comp.", key="check_comp")
-        with sub_col4:
+        # Caixinha e Label na mesma linha
+        sub_c3, sub_c4 = st.columns([1, 1.5])
+        with sub_c3:
+            nao_sabe_comprimento = st.checkbox("Não sei o L", key="check_comp")
+        with sub_c4:
             st.write("") 
             
         comprimento = st.number_input(
