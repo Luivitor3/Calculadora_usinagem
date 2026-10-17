@@ -186,7 +186,7 @@ with aba1:
             "Número de Dentes - z:", 
             min_value=1, 
             max_value=20, 
-            value=4, # <--- Valor padrão corrigido para 4
+            value=1,
             step=1, 
             key="num_dentes",
             help="Para fresamento, insira o número de dentes da fresa (ex: 4). Para torneamento, insira 1." # <--- Aviso adicionado
