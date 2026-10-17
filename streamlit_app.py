@@ -183,16 +183,21 @@ with aba1:
     
     with col2:
         num_dentes = st.number_input(
-            "Número de Dentes - z:", min_value=1, max_value=20, value=4, step=1, key="num_dentes"
+            "Número de Dentes - z:", 
+            min_value=1, 
+            max_value=20, 
+            value=4, # <--- Valor padrão corrigido para 4
+            step=1, 
+            key="num_dentes",
+            help="Para fresamento, insira o número de dentes da fresa (ex: 4). Para torneamento, insira 1." # <--- Aviso adicionado
         )
         
-        # Cria um espaço invisível com a mesma altura exata de uma caixinha de seleção
+        # Espaço invisível para manter o alinhamento com as caixinhas de seleção
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
         
         profundidade = st.number_input(
             "Profundidade de Corte - ap (mm):", min_value=0.1, max_value=20.0, value=2.0, step=0.5, key="profundidade"
         )
-    
     with col3:
         largura = st.number_input(
             "Largura de Corte - ae (mm):", min_value=0.1, max_value=200.0, value=10.0, step=1.0, key="largura"
