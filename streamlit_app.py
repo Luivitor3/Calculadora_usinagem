@@ -20,7 +20,7 @@ if "historico" not in st.session_state:
     st.session_state.historico = []
 
 # ============================================================
-# TABELA DE MATERIAIS
+# TABELA DE MATERIAIS (COM kc - FORÇA ESPECÍFICA DE CORTE)
 # ============================================================
 MATERIAIS = {
     "Aço 1020 (baixo carbono)": {"vc_desbaste": 100, "vc_acabamento": 150, "kc": 2000},
@@ -37,34 +37,39 @@ MATERIAIS = {
 # FUNÇÕES DE CÁLCULO
 # ============================================================
 def calcular_rpm(vc, diametro):
+    """Calcula a rotação (RPM). Fórmula: n = (Vc × 1000) / (π × D)"""
     if diametro <= 0:
         return 0
     return (vc * 1000) / (math.pi * diametro)
 
 def calcular_avanco(rpm, avanco_dente, num_dentes):
+    """Calcula o avanço da mesa (mm/min). Fórmula: Vf = n × fz × z"""
     return rpm * avanco_dente * num_dentes
 
 def calcular_tempo(comprimento, avanco):
+    """Calcula o tempo de usinagem (min). Fórmula: Tc = L / Vf"""
     if avanco <= 0:
         return 0
     return comprimento / avanco
 
-def calcular_potencia(avanco, profundidade, kc, rendimento=0.8):
+def calcular_potencia(avanco, profundidade, largura, kc, rendimento=0.8):
     """
     Calcula a potência de corte (kW).
-    Pc = (Vf × ap × kc) / (60 × 10^6)
+    Fórmula: Pc = (Vf × ap × ae × kc) / (60 × 10⁶ × η)
     Onde:
     - Vf = avanço em mm/min
     - ap = profundidade de corte em mm
+    - ae = largura de corte em mm
     - kc = força específica de corte em N/mm²
-    - rendimento = rendimento da máquina (0.8 padrão)
+    - η = rendimento da máquina (0.8 padrão)
     """
-    if avanco <= 0 or profundidade <= 0 or kc <= 0:
+    if avanco <= 0 or profundidade <= 0 or largura <= 0 or kc <= 0:
         return 0
-    pc = (avanco * profundidade * kc) / (60 * 1000000)
+    pc = (avanco * profundidade * largura * kc) / (60 * 1000000)
     return pc / rendimento
 
 def calcular_conicidade(d_maior, d_menor, comprimento):
+    """Calcula o ângulo de inclinação do carro superior (graus e minutos)."""
     if comprimento <= 0 or d_maior <= d_menor:
         return None, None
     tg_alpha = (d_maior - d_menor) / (2 * comprimento)
@@ -87,15 +92,7 @@ def calcular_rosca_metrica(diametro_nominal, passo):
     }
 
 def calcular_cabecote_divisor(numero_divisoes, relacao_cabecote=40):
-    """
-    Calcula a divisão no cabeçote divisor.
-    Fórmula: N = (R × z) / D
-    Onde:
-    - N = número de voltas da manivela
-    - R = relação do cabeçote (40:1 padrão)
-    - z = número de divisões desejadas
-    - D = número de furos do disco
-    """
+    """Calcula a divisão no cabeçote divisor. Fórmula: N = R / z"""
     if numero_divisoes <= 0:
         return None
     voltas = relacao_cabecote / numero_divisoes
@@ -176,7 +173,7 @@ with aba1:
     st.divider()
     st.subheader("📥 Parâmetros de Entrada")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         diametro = st.number_input(
@@ -191,25 +188,34 @@ with aba1:
             value=0.10, step=0.01, format="%.2f",
             key="avanco_dente"
         )
+    
+    with col2:
         num_dentes = st.number_input(
             "Número de Dentes - z:",
             min_value=1, max_value=20,
             value=4, step=1,
             key="num_dentes"
         )
-    
-    with col2:
-        comprimento = st.number_input(
-            "Comprimento de Usinagem - L (mm):",
-            min_value=0.0, max_value=10000.0,
-            value=200.0, step=10.0,
-            key="comprimento"
-        )
         profundidade = st.number_input(
             "Profundidade de Corte - ap (mm):",
             min_value=0.1, max_value=20.0,
             value=2.0, step=0.5,
             key="profundidade"
+        )
+    
+    with col3:
+        largura = st.number_input(
+            "Largura de Corte - ae (mm):",
+            min_value=0.1, max_value=200.0,
+            value=10.0, step=1.0,
+            key="largura",
+            help="Largura de engajamento da ferramenta na peça"
+        )
+        comprimento = st.number_input(
+            "Comprimento de Usinagem - L (mm):",
+            min_value=0.0, max_value=10000.0,
+            value=200.0, step=10.0,
+            key="comprimento"
         )
     
     st.divider()
@@ -230,6 +236,8 @@ with aba1:
             erros.append("O avanço por dente deve ser maior que zero.")
         if num_dentes <= 0:
             erros.append("O número de dentes deve ser maior que zero.")
+        if largura <= 0:
+            erros.append("A largura de corte deve ser maior que zero.")
         
         if erros:
             for erro in erros:
@@ -239,9 +247,9 @@ with aba1:
             avanco = calcular_avanco(rpm, avanco_dente, num_dentes)
             tempo = calcular_tempo(comprimento, avanco) if comprimento > 0 else 0
             
-            # Potência de corte
+            # Potência de corte (com largura)
             kc = MATERIAIS.get(material_selecionado, {}).get("kc", 2000)
-            potencia = calcular_potencia(avanco, profundidade, kc)
+            potencia = calcular_potencia(avanco, profundidade, largura, kc)
             
             st.divider()
             st.subheader("📊 Resultados")
@@ -263,9 +271,9 @@ with aba1:
                     **Tempo:** Tc = L / Vf = {comprimento} / {avanco:.2f} = **{tempo:.2f} min** ({tempo*60:.0f} segundos)
                     """)
                 st.markdown(f"""
-                **Potência:** Pc = (Vf × ap × kc) / (60 × 10⁶) / η
+                **Potência:** Pc = (Vf × ap × ae × kc) / (60 × 10⁶ × η)
                 
-                Pc = ({avanco:.2f} × {profundidade} × {kc}) / (60 × 10⁶) / 0.8 = **{potencia:.2f} kW**
+                Pc = ({avanco:.2f} × {profundidade} × {largura} × {kc}) / (60 × 10⁶ × 0.8) = **{potencia:.3f} kW**
                 """)
             
             # Salvar no histórico
@@ -275,10 +283,11 @@ with aba1:
                 "Operação": tipo_operacao,
                 "Vc (m/min)": vc,
                 "D (mm)": diametro,
+                "ae (mm)": largura,
                 "RPM": f"{rpm:.0f}",
                 "Avanço (mm/min)": f"{avanco:.1f}",
                 "Tempo (min)": f"{tempo:.2f}" if tempo > 0 else "---",
-                "Potência (kW)": f"{potencia:.2f}"
+                "Potência (kW)": f"{potencia:.3f}"
             })
             
             # Botão de exportar
@@ -402,7 +411,6 @@ with aba4:
         voltas = calcular_cabecote_divisor(numero_divisoes, relacao_cabecote)
         
         if voltas:
-            # Converter para voltas + fração
             voltas_inteiras = int(voltas)
             fracao = voltas - voltas_inteiras
             
@@ -412,10 +420,8 @@ with aba4:
             col_res1.metric("Voltas da Manivela", f"{voltas_inteiras}")
             col_res2.metric("Fração de Volta", f"{fracao:.4f}")
             
-            # Sugerir disco e furos
             st.markdown("**Sugestão de disco divisor:**")
             
-            # Discos comuns (furos)
             discos = [15, 16, 17, 18, 19, 20, 21, 23, 27, 29, 31, 33, 37, 39, 41, 43, 47, 49]
             
             for disco in discos:
@@ -443,7 +449,6 @@ with aba5:
         df_historico = pd.DataFrame(st.session_state.historico)
         st.dataframe(df_historico, use_container_width=True)
         
-        # Exportar todo o histórico
         csv_historico = df_historico.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Exportar histórico completo (CSV)",
@@ -462,4 +467,4 @@ with aba5:
 # RODAPÉ
 # ============================================================
 st.divider()
-st.caption("Desenvolvido como parte de TCC em Engenharia Mecânica | Versão 2.0")
+st.caption("Desenvolvido como parte de TCC em Engenharia Mecânica | Versão 2.1")
