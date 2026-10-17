@@ -103,7 +103,7 @@ def calcular_cabecote_divisor(numero_divisoes, relacao_cabecote=40):
 # ============================================================
 st.title("⚙️ Auxiliar de Usinagem Manual")
 st.markdown("""
-Este programa auxilia operadores de máquinas-ferramenta convencionais 
+Programa feito para auxiliar operadores de máquinas-ferramenta convencionais 
 e alunos no cálculo rápido dos parâmetros de usinagem.
 """)
 
